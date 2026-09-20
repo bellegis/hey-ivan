@@ -248,20 +248,32 @@ function dirPath(key){
 // ---- tidy title (used for sorting) ----
 // leading track numbers
 const NUM_RULES = [
-  /^\d{1,2}-\d{2,3}[\s._)-]+(?=\S)/,   // 1-05 - Song   (disc-track)
-  /^\d{1,2}\.\d{2}\s+(?=\S)/,          // 09.11 Song    (disc.track)
-  /^\d{2,3}\s*[-._)]\s*(?=\S)/,        // 01 - Song, 01.Song, 01_Song
-  /^\d{1,2}\s*[-._)]\s+(?=\S)/,        // 1. Song, 5 - Song
-  /^0\d\s+(?=\S)/                      // 01 Song
+  /^\d{1,2}\s+\d{2}\s*[-–—._):|]+\s*(?=\S)/,        // 04 01 - Song   (disc, track)
+  /^\d{1,2}-\d{2}(?!\d)[\s._):-]+(?=\S)/,           // 1-05 - Song    (disc-track)
+  /^(?:0\d|[1-9]\d)\.\d{2}\s+(?=\S)/,               // 09.11 Song     (disc.track)
+  /^\d+\s*[-–—._):|,;]+\s+(?=\S)/,                  // 01 - Song, 1. Song, 07) Song
+  /^(?:0\d|\d{3})[-–—._):|]+(?=[^\d\s])/,           // 01-Song, 07_Song, 102.Song
+  /^\d{2}[._)]+(?=[^\d\s])/,                        // 20.Song, 17_Song, 12)Song
+  /^0\d\s+(?=\S)/                                   // 01 Song
 ];
 const NUM_TOKEN = /^(?:\d{1,2}-)?\d{1,3}(?!\d)/;
-function stripNum(t, trackNumbered){
+function stripNumOnce(t, trackNumbered){
   for (const r of NUM_RULES){ if (r.test(t)) return t.replace(r, ''); }
   if (trackNumbered){
     const m = /^(?:\d{1,2}-)?\d{1,3}(?!\d)[\s._)-]*/.exec(t);
     if (m && m[0].length < t.length) return t.slice(m[0].length);
   }
   return t;
+}
+// repeats up to 3 times; the folder-consensus rule is used on the first pass only
+function stripNum(t, trackNumbered){
+  let cur = t;
+  for (let pass = 0; pass < 3; pass++){
+    const next = stripNumOnce(cur, trackNumbered && pass === 0);
+    if (next === cur) break;
+    cur = next;
+  }
+  return cur;
 }
 function numConsensus(strs){
   let num = 0; const seen = new Set();
@@ -377,7 +389,7 @@ function prepare(keys){
     const dir = k.slice(0, sl + 1), name = k.slice(sl + 1);
     names[i] = name;
     let base = noExt(name);
-    if (!/\s/.test(base) && base.indexOf('_') >= 0) base = base.replace(/_/g, ' ');
+    if (!/\s/.test(base) && base.indexOf('_') >= 0) base = base.replace(/^(\d{2,3})_+(?=[^\d\s])/, '$1 - ').replace(/_/g, ' ');
     if (isJunkName(name)){ clean[i] = base || name; continue; }
     let g = groups.get(dir);
     if (!g){ g = {idx: [], base: []}; groups.set(dir, g); }
