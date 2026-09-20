@@ -251,6 +251,10 @@ const NUM_RULES = [
   /^\d{1,2}\s+\d{2}\s*[-–—._):|]+\s*(?=\S)/,        // 04 01 - Song   (disc, track)
   /^\d{1,2}-\d{2}(?!\d)[\s._):-]+(?=\S)/,           // 1-05 - Song    (disc-track)
   /^(?:0\d|[1-9]\d)\.\d{2}\s+(?=\S)/,               // 09.11 Song     (disc.track)
+  /^\d{1,2}\.\d{2}\s*[-–—._):|]+\s*(?=\S)/,         // 1.01. Song     (disc.track, trailing mark)
+  /^[(\[{]\s*(?:0\d{1,2}|\d{1,2})\s*[)\]}]\s*[-–—._:|]*\s*(?=\S)/,  // (1) Song, (01) Song, [01] Song
+  /^(?:track|trk)\s*\d{1,3}\s*[-–—._):|]+\s*(?=\S)/i,               // Track 05 - Song
+  /^(?:cd|disc|disk)\s*\d{1,2}[-–—._):|\s]+\d{1,3}\s*[-–—._):|]+\s*(?=\S)/i,  // cd1-01-Song, Disc 1 - 05 - Song
   /^\d+\s*[-–—._):|,;]+\s+(?=\S)/,                  // 01 - Song, 1. Song, 07) Song
   /^(?:0\d|\d{3})[-–—._):|]+(?=[^\d\s])/,           // 01-Song, 07_Song, 102.Song
   /^\d{2}[._)]+(?=[^\d\s])/,                        // 20.Song, 17_Song, 12)Song
@@ -292,6 +296,8 @@ function normName(s){
   return k;
 }
 function splitPrefix(t){
+  const b = /^\[([^\]]{1,60})\]\s*(?=\S)/.exec(t);
+  if (b) return {p: b[1], rest: t.slice(b[0].length), bracket: true};
   const m = SEP_RE.exec(t);
   if (!m || m.index < 1) return null;
   const rest = t.slice(m.index + m[0].length);
@@ -300,6 +306,8 @@ function splitPrefix(t){
 function prefixStripAll(strs, anc, various){
   const n = strs.length;
   const parts = strs.map(splitPrefix);
+  const nb = parts.filter(x => x && x.bracket).length;
+  const bracketPattern = n >= 3 && nb / n >= 0.6;      // most files in the folder start with [name]
   const pc = new Map(), sc = new Map();
   let withSep = 0, qual = 0;
   parts.forEach((pt, i) => {
@@ -321,6 +329,7 @@ function prefixStripAll(strs, anc, various){
     const k = normName(pt.p);
     if (!k) return t;
     let strip = !QUAL_WORD.test(pt.rest) && anc.some(f => f === k || (k.length >= 4 && f.startsWith(k)));   // prefix matches a parent folder name
+    if (!strip && pt.bracket && bracketPattern) strip = true;
     if (!strip && !titleFirst){
       if (consensus && k === topP) strip = true;                                                           // prefix shared by most files in the folder
       else if (various && pt.p.length <= 60 && /[A-Za-z]/.test(pt.p)) strip = true;                        // compilation folder
