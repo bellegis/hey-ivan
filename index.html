@@ -158,6 +158,62 @@ input[type=range]::-moz-range-thumb{width:18px;height:32px;border-radius:7px;bor
 .dbd{padding:22px 18px 26px;font:400 18px/1.4 var(--ui);text-align:center;color:var(--ink)}
 .dbd b{font-weight:700}
 .dbd small{display:block;margin-top:8px;color:var(--muted);font:400 13px var(--mono)}
+
+/* visualizer */
+.seekrow{display:flex;align-items:center;gap:10px}
+.seekrow #seek{flex:1;min-width:0}
+#vizbtn{flex:none;width:52px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px}
+.eq{display:flex;align-items:flex-end;gap:3px;height:16px}
+.eq i{display:block;width:4px;height:100%;background:currentColor;border-radius:1px;transform-origin:bottom;transform:scaleY(.4)}
+.eq i:nth-child(2){transform:scaleY(.75)}
+.eq i:nth-child(3){transform:scaleY(.55)}
+.eq i:nth-child(4){transform:scaleY(.9)}
+#app.playing .eq i{animation:eq 900ms ease-in-out infinite alternate}
+#app.playing .eq i:nth-child(2){animation-duration:650ms;animation-delay:-200ms}
+#app.playing .eq i:nth-child(3){animation-duration:780ms;animation-delay:-400ms}
+#app.playing .eq i:nth-child(4){animation-duration:560ms;animation-delay:-100ms}
+@keyframes eq{from{transform:scaleY(.22)}to{transform:scaleY(1)}}
+@media (prefers-reduced-motion:reduce){#app.playing .eq i{animation:none}}
+#np>canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#npt,#np .l2{position:relative}
+
+#viz{position:fixed;inset:0;z-index:20;background:#000;color:#fff;user-select:none;-webkit-user-select:none}
+#vizcv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.vz-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:10px;
+  padding:calc(10px + env(safe-area-inset-top)) 14px 30px 16px;background:linear-gradient(rgba(0,0,10,.75),transparent);transition:opacity .25s}
+.vz-name{font:400 36px/1 var(--lcd);letter-spacing:.5px;text-shadow:0 0 12px rgba(130,170,255,.6)}
+.vz-src{font:700 11px var(--mono);letter-spacing:1px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.14);color:#d7ffe2}
+.vz-x{margin-left:auto;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.16);font:400 36px/1 var(--ui);color:#fff}
+.vz-x:active{background:rgba(255,255,255,.3)}
+.vz-title{position:absolute;left:0;right:0;top:calc(92px + env(safe-area-inset-top));padding:0 18px;text-align:center;
+  font:400 30px/1.1 var(--lcd);color:#d2ffe0;text-shadow:0 0 14px rgba(0,0,0,.95),0 0 8px rgba(86,255,128,.6);
+  opacity:0;transition:opacity .6s;pointer-events:none;word-break:break-word}
+.vz-title.show{opacity:1}
+.vz-panel{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;padding:12px;
+  background:rgba(8,12,34,.74);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.16);border-radius:20px;
+  transition:opacity .25s,transform .25s}
+.vz-panel.hide,.vz-top.hide{opacity:0;pointer-events:none}
+.vz-panel.hide{transform:translateY(14px)}
+.vz-modes{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.vz-modes::-webkit-scrollbar{display:none}
+.chip{flex:none;height:42px;padding:0 16px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid transparent;font:700 15px var(--ui);color:#e4e9ff}
+.chip[aria-pressed="true"]{background:#fff;color:var(--navy)}
+.vz-row{display:flex;align-items:center;gap:10px}
+.vz-lbl{width:54px;flex:none;font:400 23px/1 var(--lcd);color:#a9b8ff}
+.vz-colors{display:flex;gap:10px;flex:1;justify-content:space-between}
+.sw{width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,255,255,.25)}
+.sw[aria-pressed="true"]{border-color:#fff;box-shadow:0 0 0 2px var(--navy2)}
+.vz-opts{gap:8px}
+.opt{flex:1;height:44px;border-radius:12px;background:rgba(255,255,255,.12);font:700 14px var(--ui);color:#fff}
+.opt:active{background:rgba(255,255,255,.26)}
+.vz-tr{justify-content:center;gap:10px}
+.vz-tr .ctl{height:48px}
+.vz-tr #vzplay{width:84px;border-radius:16px;color:#fff;border:1px solid #0b1450;background:linear-gradient(#2a4fd0,#16237a);box-shadow:0 2px 0 #0b1450}
+.vz-tr #vzplay .i-pause{display:none}
+.vz-tr #vzplay.playing .i-pause{display:block}
+.vz-tr #vzplay.playing .i-play{display:none}
+.vz-panel input[type=range]{flex:1;min-width:0}
+#toast{z-index:30}
 </style>
 </head>
 <body>
@@ -193,10 +249,14 @@ input[type=range]::-moz-range-thumb{width:18px;height:32px;border-radius:7px;bor
 
   <footer id="player">
     <div id="np" role="button" tabindex="0" aria-label="Show playing song in list">
+      <canvas id="lcdviz" aria-hidden="true"></canvas>
       <div id="npt">Choose a song</div>
       <div class="l2"><span id="nps"></span><span id="ltime"><span id="tcur">0:00</span> / <span id="tdur">--:--</span></span></div>
     </div>
-    <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Song position">
+    <div class="seekrow">
+      <input id="seek" type="range" min="0" max="1000" value="0" step="1" aria-label="Song position">
+      <button id="vizbtn" class="btn" aria-label="Open visualizer"><span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span></button>
+    </div>
     <div class="tr">
       <button class="ctl btn" id="prev" aria-label="Previous song"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5h3v14H5zM20 5v14L9 12z"/></svg></button>
       <button class="ctl btn" id="play" aria-label="Play or pause">
@@ -213,6 +273,29 @@ input[type=range]::-moz-range-thumb{width:18px;height:32px;border-radius:7px;bor
 </div>
 
 <audio id="audio" preload="auto"></audio>
+<div id="viz" hidden>
+  <canvas id="vizcv"></canvas>
+  <div class="vz-top" id="vztop">
+    <span class="vz-name" id="vzname">Bars</span>
+    <span class="vz-src" id="vzsrc"></span>
+    <button class="vz-x" id="vzclose" aria-label="Close visualizer">×</button>
+  </div>
+  <div class="vz-title" id="vztitle"></div>
+  <div class="vz-panel" id="vzpanel">
+    <div class="vz-modes" id="vzmodes"></div>
+    <div class="vz-row"><span class="vz-lbl">Color</span><div class="vz-colors" id="vzcolors"></div></div>
+    <div class="vz-row"><span class="vz-lbl">Gain</span><input id="vzsens" type="range" min="40" max="250" value="100" aria-label="Visualizer sensitivity"></div>
+    <div class="vz-row vz-opts"><button class="opt" id="vzauto"></button><button class="opt" id="vztitleopt"></button><button class="opt" id="vzq"></button></div>
+    <div class="vz-row vz-tr">
+      <button class="ctl btn" id="vzprev" aria-label="Previous song"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5h3v14H5zM20 5v14L9 12z"/></svg></button>
+      <button class="ctl btn" id="vzplay" aria-label="Play or pause">
+        <svg class="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor"><path d="M5 4h5v16H5zM14 4h5v16h-5z"/></svg>
+      </button>
+      <button class="ctl btn" id="vznext" aria-label="Next song"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h3v14h-3zM4 5l11 7L4 19z"/></svg></button>
+    </div>
+  </div>
+</div>
 <div id="bubble" aria-hidden="true"></div>
 <div id="toast" role="status"></div>
 <div id="msg"><div class="dlg"><div class="dtb">Hey Ivan</div><div class="dbd" id="msgtxt">Loading your music…</div></div></div>
@@ -733,6 +816,14 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
     seekOnLoad: 0,
     failStreak: 0
   };
+  const vz = {
+    cors: null, corsLoad: false, retried: -1, prime(){}, onLoadError(){ return false; }, probe(){},
+    open: false, mode: 0, pal: 0, sens: 1, auto: 0, title: true, q: 1,
+    ctx: null, an: null, node: null, attached: '', silent: 0, real: false,
+    bands: new Float32Array(48), wave: new Float32Array(128),
+    bass: 0, mid: 0, treb: 0, energy: 0, beat: 0, avgBass: 0, lastBeat: 0,
+    simT: 0, simE: 0, t: 0, last: 0, raf: 0, s: {}, autoT: 0, panelT: 0, panelOn: false, lcdSkip: 0, pushed: false
+  };
 
   /* toast */
   const toastEl = $('#toast'); let toastT = 0;
@@ -839,6 +930,8 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
     q.pos = pos;
     st.cur = q.ids[pos];
     st.pending = null;
+    if (vz.cors === true) audio.crossOrigin = 'anonymous'; else audio.removeAttribute('crossorigin');
+    vz.corsLoad = vz.cors === true;
     audio.src = urlFor(st.cur);
     st.seekOnLoad = seek || 0;
     $('#tdur').textContent = '--:--';
@@ -846,6 +939,7 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
     updateNowPlaying(); songsB.refresh(); foldB.refresh(); setMeta(); save();
   }
   function tryPlay(){
+    vz.prime();
     const p = audio.play();
     if (p && p.catch) p.catch(err => {
       if (err.name === 'NotAllowedError') toast('Tap the play button to start');
@@ -883,6 +977,7 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
   audio.addEventListener('playing', () => { st.failStreak = 0; });
   audio.addEventListener('error', () => {
     if (st.cur < 0 || !audio.getAttribute('src')) return;
+    if (vz.onLoadError()) return;
     st.failStreak++;
     if (st.failStreak <= 5){
       toast("Couldn't play “" + L.names[st.cur] + "” — skipping");
@@ -1035,6 +1130,454 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
     songsB.refresh();
     showTab(s && s.tab === 'folders' ? 'folders' : 'songs');
   }
+  /* visualizer */
+  (function initViz(){
+    const cv = $('#vizcv'), g = cv.getContext('2d');
+    const lc = $('#lcdviz'), lg = lc.getContext('2d');
+    if (!g || !lg) return;
+    const VZ_MODES = ['Bars', 'Scope', 'Waves', 'Rings', 'Plasma', 'Starfield', 'Kaleido', 'Waterfall', 'Warp'];
+    const VZ_PALS = [
+      {n: 'Neon',    h0: 310, h1: 170, s: 100, l0: 52, l1: 66},
+      {n: 'Fire',    h0: 0,   h1: 58,  s: 100, l0: 44, l1: 62},
+      {n: 'Ocean',   h0: 245, h1: 175, s: 92,  l0: 48, l1: 66},
+      {n: 'Toxic',   h0: 145, h1: 70,  s: 100, l0: 40, l1: 58},
+      {n: 'Sunset',  h0: 345, h1: 38,  s: 96,  l0: 54, l1: 64},
+      {n: 'LCD',     h0: 135, h1: 135, s: 100, l0: 32, l1: 62},
+      {n: 'Rainbow', h0: 0,   h1: 300, s: 100, l0: 54, l1: 60, spin: true}
+    ];
+    const fdata = new Uint8Array(256), tdata = new Uint8Array(512);
+    const clamp01 = v => v < 0 ? 0 : v > 1 ? 1 : v;
+
+    try {
+      const o = JSON.parse(localStorage.getItem('songs.viz.v1'));
+      if (o){
+        if (o.mode >= 0 && o.mode < VZ_MODES.length) vz.mode = o.mode | 0;
+        if (o.pal >= 0 && o.pal < VZ_PALS.length) vz.pal = o.pal | 0;
+        if (o.sens >= 0.4 && o.sens <= 2.5) vz.sens = +o.sens;
+        if (o.auto >= 0 && o.auto <= 2) vz.auto = o.auto | 0;
+        if (typeof o.title === 'boolean') vz.title = o.title;
+        if (o.q === 0 || o.q === 1) vz.q = o.q;
+      }
+    } catch (_) {}
+    function persist(){
+      try { localStorage.setItem('songs.viz.v1', JSON.stringify({mode: vz.mode, pal: vz.pal, sens: vz.sens, auto: vz.auto, title: vz.title, q: vz.q})); } catch (_) {}
+    }
+
+    /* colors */
+    function col(v, a){
+      const p = VZ_PALS[vz.pal]; v = clamp01(v);
+      const h = p.h0 + (p.h1 - p.h0) * v + (p.spin ? vz.t * 40 : 0), l = p.l0 + (p.l1 - p.l0) * v;
+      return 'hsla(' + ((h % 360 + 360) % 360).toFixed(0) + ',' + p.s + '%,' + l.toFixed(0) + '%,' + (a == null ? 1 : a) + ')';
+    }
+    function rgb(v){
+      const p = VZ_PALS[vz.pal]; v = clamp01(v);
+      const h = (((p.h0 + (p.h1 - p.h0) * v + (p.spin ? vz.t * 40 : 0)) % 360) + 360) % 360 / 360, s = p.s / 100, l = (p.l0 + (p.l1 - p.l0) * v) / 100;
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s, pp = 2 * l - q;
+      const f = t => { t = (t % 1 + 1) % 1; return t < 1 / 6 ? pp + (q - pp) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? pp + (q - pp) * (2 / 3 - t) * 6 : pp; };
+      return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+    }
+
+    /* audio analysis (used only when the bucket allows cross-origin reads) */
+    function ensureCtx(){
+      if (vz.ctx || vz.cors !== true) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      try {
+        vz.ctx = new AC();
+        vz.an = vz.ctx.createAnalyser(); vz.an.fftSize = 512; vz.an.smoothingTimeConstant = 0.55;
+        const sink = vz.ctx.createGain(); sink.gain.value = 0;
+        vz.an.connect(sink); sink.connect(vz.ctx.destination);
+      } catch (_) { vz.ctx = null; vz.an = null; }
+    }
+    vz.prime = () => {
+      if (vz.cors !== true) return;
+      ensureCtx();
+      if (vz.ctx && vz.ctx.state === 'suspended') vz.ctx.resume().catch(() => {});
+    };
+    function attach(){
+      if (!vz.ctx || !vz.an || audio.currentSrc === vz.attached) return;
+      const cap = audio.captureStream || audio.mozCaptureStream;
+      if (!cap) return;
+      try {
+        const ms = cap.call(audio);
+        if (!ms.getAudioTracks().length) return;
+        if (vz.node){ try { vz.node.disconnect(); } catch (_) {} }
+        vz.node = vz.ctx.createMediaStreamSource(ms);
+        vz.node.connect(vz.an);
+        vz.attached = audio.currentSrc; vz.silent = 0;
+      } catch (_) {}
+    }
+    vz.onLoadError = () => {
+      if (!vz.corsLoad || vz.retried === st.cur) return false;
+      vz.retried = st.cur; vz.cors = false; vz.corsLoad = false;
+      playAt(st.queue.pos, true, audio.currentTime || 0);
+      return true;
+    };
+    vz.probe = async () => {
+      try {
+        const idx = st.cur >= 0 ? st.cur : L.order[0];
+        const r = await fetch(urlFor(idx), {method: 'HEAD', mode: 'cors', cache: 'no-store'});
+        vz.cors = r.ok;
+      } catch (_) { vz.cors = false; }
+    };
+
+    /* data: real spectrum when available, otherwise a simulated one */
+    function simulate(dt, playing){
+      vz.simE += ((playing ? 1 : 0) - vz.simE) * Math.min(1, dt * 3);
+      vz.simT += dt;
+      const bpm = 116 + 14 * Math.sin(vz.simT * 0.05), ph = (vz.simT * bpm / 60) % 1, kick = Math.pow(1 - ph, 3);
+      for (let i = 0; i < 48; i++){
+        const x = i / 47, base = 0.5 * Math.pow(1 - x, 1.3) + 0.14;
+        const n = 0.5 + 0.5 * Math.sin(vz.simT * (1.7 + i * 0.37) + i * 1.3 + 2 * Math.sin(vz.simT * 0.31 + i));
+        let v = base * (0.3 + 0.7 * n) + (i < 8 ? kick * 0.55 : 0) + (i > 26 ? Math.random() * 0.14 : 0);
+        v = clamp01(v * vz.simE * vz.sens);
+        const cur = vz.bands[i]; vz.bands[i] = cur + (v - cur) * (v > cur ? 0.6 : 0.16);
+      }
+      for (let j = 0; j < 128; j++){
+        vz.wave[j] = (Math.sin(j * 0.11 + vz.simT * 9) * 0.4 + Math.sin(j * 0.05 - vz.simT * 5) * 0.3 + Math.sin(j * 0.31 + vz.simT * 13) * 0.15 * (0.4 + vz.treb)) * vz.simE * (0.6 + kick * 0.6) * vz.sens;
+      }
+    }
+    function sample(dt){
+      const playing = !audio.paused && !audio.ended;
+      let live = false;
+      if (playing && vz.an && vz.ctx && vz.ctx.state === 'running' && vz.node){
+        vz.an.getByteFrequencyData(fdata); vz.an.getByteTimeDomainData(tdata);
+        let mx = 0;
+        for (let i = 0; i < 256; i++) if (fdata[i] > mx) mx = fdata[i];
+        if (mx === 0) vz.silent++; else vz.silent = 0;
+        if (vz.silent < 45){
+          live = true;
+          for (let i = 0; i < 48; i++){
+            const a = 1 + Math.pow(i / 48, 2.1) * 190, b = 1 + Math.pow((i + 1) / 48, 2.1) * 190;
+            let m = 0;
+            for (let k = Math.floor(a); k <= Math.max(Math.floor(a), Math.floor(b) - 1); k++) if (fdata[k] > m) m = fdata[k];
+            const v = clamp01(Math.pow(m / 255, 1.35) * (1 + i / 48 * 1.1) * vz.sens);
+            const cur = vz.bands[i]; vz.bands[i] = cur + (v - cur) * (v > cur ? 0.65 : 0.16);
+          }
+          for (let j = 0; j < 128; j++) vz.wave[j] = (tdata[j * 4] - 128) / 128 * vz.sens;
+        }
+      }
+      vz.real = live;
+      if (!live) simulate(dt, playing);
+      let b = 0, m = 0, tr = 0;
+      for (let i = 0; i < 6; i++) b += vz.bands[i];
+      for (let i = 6; i < 24; i++) m += vz.bands[i];
+      for (let i = 24; i < 48; i++) tr += vz.bands[i];
+      b /= 6; m /= 18; tr /= 24;
+      vz.bass = b; vz.mid = m; vz.treb = tr; vz.energy = (b + m + tr) / 3;
+      vz.avgBass += (b - vz.avgBass) * Math.min(1, dt * 2.5);
+      vz.beat *= Math.pow(0.02, dt);
+      if (b > vz.avgBass * 1.3 + 0.06 && vz.t - vz.lastBeat > 0.24){ vz.beat = 1; vz.lastBeat = vz.t; }
+    }
+
+    /* visualizations */
+    function dBars(W, H, dt){
+      g.fillStyle = 'rgba(0,0,14,0.6)'; g.fillRect(0, 0, W, H);
+      const s = vz.s, N = W > 700 ? 48 : 32, bw = W / N, area = H * 0.62, base = H * 0.78;
+      const seg = Math.max(4, Math.round(H / 70)), gap = Math.max(1, Math.round(seg / 4));
+      const pk = s.pk || (s.pk = new Float32Array(48));
+      for (let i = 0; i < N; i++){
+        const v = clamp01(vz.bands[Math.floor(i * 48 / N)]);
+        pk[i] = Math.max(pk[i] - dt * 0.55, v);
+        const hgt = v * area, x = i * bw;
+        for (let y = 0; y < hgt; y += seg + gap){ g.fillStyle = col(y / area); g.fillRect(x + 1, base - y - seg, bw - 2, seg); }
+        g.fillStyle = col(1); g.fillRect(x + 1, base - pk[i] * area - seg, bw - 2, seg);
+        g.globalAlpha = 0.16;
+        for (let y = 0; y < hgt * 0.5; y += seg + gap){ g.fillStyle = col(y / area); g.fillRect(x + 1, base + gap + y * 0.8, bw - 2, seg * 0.8); }
+        g.globalAlpha = 1;
+      }
+    }
+    function dScope(W, H){
+      g.fillStyle = 'rgba(0,0,12,0.2)'; g.fillRect(0, 0, W, H);
+      g.lineJoin = 'round'; g.globalCompositeOperation = 'lighter';
+      for (let pass = 0; pass < 2; pass++){
+        const off = pass ? H * 0.06 : 0, sgn = pass ? -1 : 1;
+        const trace = (lw, a, v) => {
+          g.lineWidth = lw; g.strokeStyle = col(v, a); g.beginPath();
+          for (let j = 0; j < 128; j++){
+            const x = j / 127 * W, y = H / 2 + off + sgn * vz.wave[j] * H * 0.36 * (1 + vz.bass * 0.8);
+            if (j) g.lineTo(x, y); else g.moveTo(x, y);
+          }
+          g.stroke();
+        };
+        trace(H / 60 + 4, 0.16, pass ? 0.9 : 0.15);
+        trace(H / 200 + 1.5, 0.95, pass ? 1 : 0.35 + vz.bass * 0.6);
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    function dWaves(W, H){
+      g.fillStyle = 'rgba(0,0,12,0.35)'; g.fillRect(0, 0, W, H);
+      g.globalCompositeOperation = 'lighter';
+      const layers = 5;
+      for (let L2 = 0; L2 < layers; L2++){
+        const e = L2 < 2 ? vz.bass : L2 < 4 ? vz.mid : vz.treb;
+        const amp = H * (0.03 + e * 0.16), y0 = H * (0.32 + L2 * 0.11), sp = 0.7 + L2 * 0.35, pts = [];
+        for (let x = 0; x <= W; x += 6){
+          const u = x / W;
+          pts.push(x, y0 + Math.sin(u * (5 + L2 * 1.5) + vz.t * sp + L2 * 1.7) * amp + Math.sin(u * 11 - vz.t * sp * 1.3 + L2) * amp * 0.45);
+        }
+        g.beginPath(); g.moveTo(0, H);
+        for (let i = 0; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
+        g.lineTo(W, H); g.closePath(); g.fillStyle = col(L2 / (layers - 1), 0.15); g.fill();
+        g.beginPath();
+        for (let i = 0; i < pts.length; i += 2){ if (i) g.lineTo(pts[i], pts[i + 1]); else g.moveTo(pts[i], pts[i + 1]); }
+        g.lineWidth = 2; g.strokeStyle = col(L2 / (layers - 1), 0.8); g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    function dRings(W, H, dt){
+      g.fillStyle = 'rgba(0,0,12,0.2)'; g.fillRect(0, 0, W, H);
+      const cx = W / 2, cy = H * 0.45, R = Math.min(W, H), rings = vz.s.r || (vz.s.r = []);
+      if (vz.beat > 0.95 && rings.length < 14) rings.push({r: R * 0.06, a: 1, v: Math.random()});
+      g.globalCompositeOperation = 'lighter';
+      for (let i = rings.length - 1; i >= 0; i--){
+        const o = rings[i]; o.r += dt * R * (0.28 + vz.bass * 0.7); o.a -= dt * 0.55;
+        if (o.a <= 0){ rings.splice(i, 1); continue; }
+        g.lineWidth = 2 + o.a * R * 0.03; g.strokeStyle = col(o.v, o.a * 0.9);
+        g.beginPath(); g.arc(cx, cy, o.r, 0, 6.2832); g.stroke();
+      }
+      const r0 = R * (0.11 + vz.bass * 0.05), rot = vz.t * 0.35;
+      g.lineWidth = Math.max(2, R / 90); g.lineCap = 'round';
+      for (let i = 0; i < 48; i++){
+        const a = rot + i / 48 * 6.2832, r1 = r0 + 4 + vz.bands[i] * R * 0.26;
+        g.strokeStyle = col(i / 47, 0.9); g.beginPath();
+        g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); g.stroke();
+      }
+      const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r0);
+      gr.addColorStop(0, col(0.5 + vz.bass * 0.5, 0.55 + vz.beat * 0.3)); gr.addColorStop(1, col(0.2, 0));
+      g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, r0, 0, 6.2832); g.fill();
+      g.globalCompositeOperation = 'source-over';
+    }
+    function dPlasma(W, H, dt){
+      const s = vz.s, bw = 72, bh = Math.max(24, Math.round(bw * H / W));
+      if (!s.buf){
+        s.buf = document.createElement('canvas'); s.buf.width = bw; s.buf.height = bh;
+        s.bg = s.buf.getContext('2d'); s.img = s.bg.createImageData(bw, bh);
+        s.lut = new Uint8ClampedArray(768); s.z = 0; s.sx = new Float32Array(bw); s.sy = new Float32Array(bh);
+      }
+      s.z += dt * (0.5 + (1 + vz.energy * 2.2) * 0.5);
+      const z = s.z, lut = s.lut, sx = s.sx, sy = s.sy;
+      for (let i = 0; i < 256; i++){ const c = rgb(i / 255); lut[i * 3] = c[0]; lut[i * 3 + 1] = c[1]; lut[i * 3 + 2] = c[2]; }
+      for (let x = 0; x < bw; x++) sx[x] = Math.sin(x * 0.16 + z);
+      for (let y = 0; y < bh; y++) sy[y] = Math.sin(y * 0.14 - z * 1.2);
+      const d = s.img.data, cx = bw / 2, cy = bh / 2, k = vz.bass * 5;
+      let p = 0;
+      for (let y = 0; y < bh; y++){
+        for (let x = 0; x < bw; x++){
+          const dx = x - cx, dy = y - cy;
+          const v = sx[x] + sy[y] + Math.sin(x * 0.09 + y * 0.11 + z * 0.7) + Math.sin(Math.sqrt(dx * dx + dy * dy) * 0.22 - z * 1.6 + k);
+          const li = (((v + 4) / 8 * 255) | 0) * 3;
+          d[p++] = lut[li]; d[p++] = lut[li + 1]; d[p++] = lut[li + 2]; d[p++] = 255;
+        }
+      }
+      s.bg.putImageData(s.img, 0, 0);
+      g.imageSmoothingEnabled = true; g.drawImage(s.buf, 0, 0, W, H);
+      if (vz.beat > 0.05){ g.fillStyle = 'rgba(255,255,255,' + (vz.beat * 0.16).toFixed(3) + ')'; g.fillRect(0, 0, W, H); }
+    }
+    function dStar(W, H, dt){
+      const s = vz.s;
+      if (!s.st){ s.st = []; for (let i = 0; i < 260; i++) s.st.push({x: Math.random() * 2 - 1, y: Math.random() * 2 - 1, z: Math.random() * 0.98 + 0.02, pz: 1}); }
+      g.fillStyle = 'rgba(0,0,8,0.32)'; g.fillRect(0, 0, W, H);
+      const cx = W / 2, cy = H / 2, sp = 0.28 + vz.bass * 1.5 + vz.beat, F = Math.max(W, H) * 0.28;
+      g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+      for (const o of s.st){
+        o.pz = o.z; o.z -= dt * sp;
+        const x = cx + o.x / o.z * F, y = cy + o.y / o.z * F;
+        if (o.z <= 0.02 || x < -60 || x > W + 60 || y < -60 || y > H + 60){
+          o.x = Math.random() * 2 - 1; o.y = Math.random() * 2 - 1; o.z = 1; o.pz = 1; continue;
+        }
+        g.lineWidth = 1 + (1 - o.z) * 3.2; g.strokeStyle = col(1 - o.z, 0.5 + (1 - o.z) * 0.5);
+        g.beginPath(); g.moveTo(cx + o.x / o.pz * F, cy + o.y / o.pz * F); g.lineTo(x, y); g.stroke();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    function dKal(W, H){
+      g.fillStyle = 'rgba(0,0,10,0.17)'; g.fillRect(0, 0, W, H);
+      const cx = W / 2, cy = H * 0.46, R = Math.min(W, H) * 0.48, wedges = 8, rot = vz.t * 0.18 + vz.mid * 0.4;
+      g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+      for (let k = 0; k < wedges; k++){
+        g.save(); g.translate(cx, cy); g.rotate(rot + k * 6.2832 / wedges); if (k & 1) g.scale(1, -1);
+        for (let i = 0; i < 40; i++){
+          const th = i / 39 * (3.1416 / wedges), v = vz.bands[i], r0 = R * (0.06 + vz.bass * 0.06), r1 = r0 + 4 + v * R * 0.9;
+          g.lineWidth = 2 + v * 4; g.strokeStyle = col(i / 39, 0.55 + v * 0.4);
+          g.beginPath(); g.moveTo(Math.cos(th) * r0, Math.sin(th) * r0); g.lineTo(Math.cos(th) * r1, Math.sin(th) * r1); g.stroke();
+          if (v > 0.35){ g.fillStyle = col(1 - i / 39, 0.7); g.beginPath(); g.arc(Math.cos(th) * r1, Math.sin(th) * r1, 2 + v * 6, 0, 6.2832); g.fill(); }
+        }
+        g.restore();
+      }
+      g.globalCompositeOperation = 'source-over';
+    }
+    function dFall(W, H, dt){
+      const s = vz.s, bw = 96, bh = Math.max(40, Math.round(bw * H / W));
+      if (!s.buf){
+        s.buf = document.createElement('canvas'); s.buf.width = bw; s.buf.height = bh;
+        s.bg = s.buf.getContext('2d'); s.bg.fillStyle = '#00000a'; s.bg.fillRect(0, 0, bw, bh); s.acc = 0;
+      }
+      s.acc += dt * 55;
+      let rows = Math.floor(s.acc); s.acc -= rows;
+      if (rows > 0){
+        rows = Math.min(rows, 4);
+        s.bg.drawImage(s.buf, 0, rows);
+        s.bg.fillStyle = '#00000a'; s.bg.fillRect(0, 0, bw, rows);
+        for (let x = 0; x < bw; x++){
+          const bi = Math.min(47, Math.floor(Math.abs(x - bw / 2 + 0.5) / (bw / 2) * 48));
+          const v = clamp01(vz.bands[bi] * 1.15);
+          if (v < 0.04) continue;
+          s.bg.fillStyle = col(v * 0.9 + 0.1, 0.35 + v * 0.65); s.bg.fillRect(x, 0, 1, rows);
+        }
+      }
+      g.imageSmoothingEnabled = false; g.drawImage(s.buf, 0, 0, W, H);
+    }
+    function dWarp(W, H){
+      const s = vz.s;
+      if (!s.buf){ s.buf = document.createElement('canvas'); s.buf.width = W; s.buf.height = H; s.bg = s.buf.getContext('2d'); }
+      const cx = W / 2, cy = H / 2, R = Math.min(W, H), zoom = 1.018 + vz.bass * 0.02;
+      g.globalCompositeOperation = 'source-over'; g.fillStyle = '#000008'; g.fillRect(0, 0, W, H);
+      g.save(); g.globalAlpha = 0.94; g.translate(cx, cy); g.rotate(0.006 + vz.beat * 0.012 + vz.mid * 0.01); g.scale(zoom, zoom); g.translate(-cx, -cy);
+      g.drawImage(s.buf, 0, 0); g.restore();
+      g.globalCompositeOperation = 'lighter'; g.lineJoin = 'round';
+      g.lineWidth = 2 + vz.bass * 5; g.strokeStyle = col((vz.t * 0.1) % 1, 0.9); g.beginPath();
+      for (let i = 0; i <= 96; i++){
+        const bi = i < 48 ? i : 96 - i, a = i / 96 * 6.2832 + vz.t * 0.3, r = R * (0.14 + vz.bands[bi] * 0.22);
+        const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        if (i) g.lineTo(x, y); else g.moveTo(x, y);
+      }
+      g.stroke();
+      for (let k = 0; k < 4; k++){
+        const a = vz.t * (0.6 + k * 0.3) + k * 1.57, r = R * (0.25 + 0.08 * Math.sin(vz.t + k));
+        g.fillStyle = col(k / 4 + 0.1, 0.9); g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 3 + vz.treb * 10, 0, 6.2832); g.fill();
+      }
+      g.globalCompositeOperation = 'source-over';
+      s.bg.clearRect(0, 0, W, H); s.bg.drawImage(cv, 0, 0);
+    }
+    const DRAW = [dBars, dScope, dWaves, dRings, dPlasma, dStar, dKal, dFall, dWarp];
+
+    function drawLcd(){
+      const w = lc.width, h = lc.height;
+      if (!w) return;
+      lg.clearRect(0, 0, w, h);
+      if (vz.energy < 0.01) return;
+      const N = 40, bw = w / N;
+      for (let i = 0; i < N; i++){
+        const bh = clamp01(vz.bands[Math.floor(i * 48 / N)]) * h * 0.62;
+        lg.fillStyle = 'rgba(70,255,120,0.26)'; lg.fillRect(i * bw + 1, h - bh, bw - 2, bh);
+        lg.fillStyle = 'rgba(140,255,170,0.34)'; lg.fillRect(i * bw + 1, h - bh, bw - 2, 2);
+      }
+    }
+    function sizeLcd(){
+      const el = $('#np'), w = el.clientWidth, h = el.clientHeight;
+      if (w && (lc.width !== w || lc.height !== h)){ lc.width = w; lc.height = h; }
+    }
+    new ResizeObserver(sizeLcd).observe($('#np'));
+    function sizeCanvas(){
+      const sc = vz.q ? Math.min(window.devicePixelRatio || 1, 1.5) : 0.6;
+      const w = Math.max(2, Math.round(innerWidth * sc)), h = Math.max(2, Math.round(innerHeight * sc));
+      if (cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; vz.s = {}; }
+    }
+    addEventListener('resize', () => { if (vz.open) sizeCanvas(); });
+
+    /* frame loop: runs only while something is visible or moving */
+    function frame(ts){
+      vz.raf = 0;
+      const now = ts / 1000, dt = Math.min(0.05, vz.last ? now - vz.last : 0.016);
+      vz.last = now; vz.t += dt;
+      sample(dt);
+      if (vz.open){
+        DRAW[vz.mode](cv.width, cv.height, dt);
+        if (vz.auto === 2){ vz.autoT += dt; if (vz.autoT > 20) nextMode(1); }
+        if (((vz.frames = (vz.frames || 0) + 1) % 20) === 0) $('#vzsrc').textContent = audio.paused ? 'PAUSED' : vz.real ? 'LIVE AUDIO' : 'SIMULATED';
+      } else if ((vz.lcdSkip ^= 1) === 0){
+        drawLcd();
+      }
+      if (!document.hidden && (vz.open || !audio.paused || vz.simE > 0.02 || vz.energy > 0.01)) vz.raf = requestAnimationFrame(frame);
+    }
+    function kick(){ if (!vz.raf && !document.hidden){ vz.last = 0; vz.raf = requestAnimationFrame(frame); } }
+    ['play', 'playing', 'pause'].forEach(ev => audio.addEventListener(ev, kick));
+    audio.addEventListener('playing', () => { if (vz.corsLoad){ vz.prime(); attach(); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+
+    /* controls */
+    const panel = $('#vzpanel'), top = $('#vztop');
+    const modesEl = $('#vzmodes'), colorsEl = $('#vzcolors');
+    VZ_MODES.forEach((n, i) => {
+      const b = document.createElement('button'); b.className = 'chip'; b.textContent = n;
+      b.onclick = () => { setMode(i); poke(); }; modesEl.appendChild(b);
+    });
+    VZ_PALS.forEach((p, i) => {
+      const b = document.createElement('button'); b.className = 'sw'; b.setAttribute('aria-label', p.n + ' colors');
+      b.style.background = 'linear-gradient(135deg,hsl(' + p.h0 + ',' + p.s + '%,' + p.l0 + '%),hsl(' + p.h1 + ',' + p.s + '%,' + p.l1 + '%))';
+      b.onclick = () => { vz.pal = i; persist(); syncUI(); poke(); }; colorsEl.appendChild(b);
+    });
+    const AUTO = ['Auto: Off', 'Auto: New song', 'Auto: 20 sec'];
+    function syncUI(){
+      [...modesEl.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === vz.mode)));
+      [...colorsEl.children].forEach((b, i) => b.setAttribute('aria-pressed', String(i === vz.pal)));
+      $('#vzname').textContent = VZ_MODES[vz.mode];
+      $('#vzauto').textContent = AUTO[vz.auto];
+      $('#vztitleopt').textContent = 'Title: ' + (vz.title ? 'On' : 'Off');
+      $('#vzq').textContent = 'Detail: ' + (vz.q ? 'High' : 'Low');
+      const sens = $('#vzsens'); sens.value = Math.round(vz.sens * 100); sens.style.setProperty('--p', ((sens.value - 40) / 210 * 100) + '%');
+      $('#vzplay').classList.toggle('playing', !audio.paused);
+      const on = modesEl.children[vz.mode]; if (on && vz.open && on.scrollIntoView) { try { on.scrollIntoView({inline: 'center', block: 'nearest'}); } catch (_) {} }
+    }
+    function setMode(i){
+      vz.mode = (i + VZ_MODES.length) % VZ_MODES.length; vz.s = {}; vz.autoT = 0; persist();
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height);
+      syncUI();
+    }
+    function nextMode(step){ setMode(vz.mode + (step || 1)); }
+    function showPanel(){ vz.panelOn = true; panel.classList.remove('hide'); top.classList.remove('hide'); }
+    function hidePanel(){ vz.panelOn = false; panel.classList.add('hide'); top.classList.add('hide'); }
+    function poke(){ showPanel(); clearTimeout(vz.panelT); vz.panelT = setTimeout(hidePanel, 6500); }
+    let titleT = 0;
+    function announce(){
+      if (!vz.open || !vz.title || st.cur < 0) return;
+      const t = $('#vztitle'); t.textContent = noExt(L.names[st.cur]); t.classList.add('show');
+      clearTimeout(titleT); titleT = setTimeout(() => t.classList.remove('show'), 5000);
+    }
+    audio.addEventListener('loadstart', () => { if (vz.auto === 1 && vz.open) nextMode(1); announce(); });
+    ['play', 'pause'].forEach(ev => audio.addEventListener(ev, () => $('#vzplay').classList.toggle('playing', !audio.paused)));
+
+    $('#vzauto').onclick = () => { vz.auto = (vz.auto + 1) % 3; vz.autoT = 0; persist(); syncUI(); poke(); };
+    $('#vztitleopt').onclick = () => { vz.title = !vz.title; persist(); syncUI(); if (vz.title) announce(); else $('#vztitle').classList.remove('show'); poke(); };
+    $('#vzq').onclick = () => { vz.q = vz.q ? 0 : 1; persist(); sizeCanvas(); vz.s = {}; syncUI(); poke(); };
+    $('#vzsens').addEventListener('input', e => { vz.sens = e.target.value / 100; e.target.style.setProperty('--p', ((e.target.value - 40) / 210 * 100) + '%'); persist(); poke(); });
+    $('#vzprev').onclick = () => { prev(); poke(); };
+    $('#vznext').onclick = () => { next(); poke(); };
+    $('#vzplay').onclick = () => { toggle(); poke(); };
+
+    let pd = null;
+    cv.addEventListener('pointerdown', e => { pd = {x: e.clientX, y: e.clientY}; });
+    cv.addEventListener('pointerup', e => {
+      if (!pd) return;
+      const dx = e.clientX - pd.x, dy = e.clientY - pd.y; pd = null;
+      if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4){ setMode(vz.mode + (dx < 0 ? 1 : -1)); poke(); }
+      else if (Math.abs(dx) < 12 && Math.abs(dy) < 12){ if (vz.panelOn) hidePanel(); else poke(); }
+    });
+    cv.addEventListener('pointercancel', () => { pd = null; });
+
+    function openViz(){
+      if (vz.open) return;
+      vz.open = true; $('#viz').hidden = false; sizeCanvas(); vz.autoT = 0;
+      g.fillStyle = '#000'; g.fillRect(0, 0, cv.width, cv.height);
+      syncUI(); poke(); announce(); kick();
+      try { history.pushState({viz: 1}, ''); vz.pushed = true; } catch (_) { vz.pushed = false; }
+    }
+    function closeViz(fromPop){
+      if (!vz.open) return;
+      vz.open = false; $('#viz').hidden = true; clearTimeout(vz.panelT);
+      const wasPushed = vz.pushed; vz.pushed = false;
+      if (wasPushed && !fromPop){ try { history.back(); } catch (_) {} }
+      kick();
+    }
+    addEventListener('popstate', () => { if (vz.open){ vz.pushed = false; closeViz(true); } });
+    $('#vizbtn').onclick = openViz;
+    $('#vzclose').onclick = () => closeViz(false);
+    addEventListener('keydown', e => { if (e.key === 'Escape' && vz.open) closeViz(false); });
+    syncUI(); sizeLcd();
+  })();
+  vz.probe();
+
   restore();
   msg.remove();
 
